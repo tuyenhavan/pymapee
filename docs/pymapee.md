@@ -1,0 +1,4 @@
+ 
+# pymapee module
+
+::: pymapee.pymapee
