@@ -1,6 +1,6 @@
 """Main module."""
 import ee
-from utils import (date_range_col, monthly_datetime_list,
+from .utils import (date_range_col, monthly_datetime_list,
                     cloud_mask, scaling_data)
 
 def initialize_ee():
@@ -166,10 +166,6 @@ def VCI(col):
         return ee.Algorithms.If(size.gt(0), vci_img)
     vci_col=ee.ImageCollection.fromImages(monthly_list.map(vci))
     return vci_col
-
-
-
-
 
 def download_ee(ds,aoi,folder_name="GEE_Data",res=1000):
     """ Export an image from GEE with a given scale and area of interest
