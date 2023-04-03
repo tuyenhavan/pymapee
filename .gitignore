@@ -8,7 +8,6 @@ private/
 *.so
 # Ignore folders
 datasets/
-examples/
 
 # Distribution / packaging
 .Python

@@ -3,6 +3,12 @@ import ee
 from utils import (date_range_col, monthly_datetime_list,
                     cloud_mask, scaling_data)
 
+def initialize_ee():
+    ee.Initialize()
+
+def authenticate_ee():
+    ee.Authenticate()
+
 def modis_cloud_mask(col, from_bit, to_bit, QA_band="DetailedQA", threshold=1):
     """ Return a collection of MODIS cloud-free images
 
