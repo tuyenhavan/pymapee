@@ -9,7 +9,7 @@
 
 **A Simple Python package to pre-processing satellite data using Google Earth Engine.**
 
-pymapee is a simple Python package that aims to provide common functionalities to pre-process or calculate vegetation drought indices using Google Earth Engine. Currently, this package supports cloud masking (MODIS, Landsat, Sentinel-2), composite (monthly), and calculation of vegetation anomaly index (VAI) and vegetation condition index (VCI). It also supports to download an image collection (e.g., time-series NDVI or LST) or an image. This package is under active development, and changes are expected over time.
+`pymapee` is a simple Python package that aims to provide common functionalities to pre-process or calculate vegetation drought indices using Google Earth Engine. Currently, this package supports cloud masking (MODIS, Landsat, Sentinel-2), composite (monthly), and calculation of vegetation anomaly index (VAI) and vegetation condition index (VCI). It also supports to download an image collection (e.g., time-series NDVI or LST) or an image. This package is under active development, and changes are expected over time.
 
 -  GitHub repo: [https://github.com/tuyenhavan/pymapee](https://github.com/tuyenhavan/pymapee)
 -   Free software: MIT license
