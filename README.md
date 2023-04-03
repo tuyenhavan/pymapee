@@ -11,9 +11,8 @@
 
 
 -  GitHub repo: [https://github.com/tuyenhavan/pymapee](https://github.com/tuyenhavan/pymapee)
--   
-    
-
+-   Free software: MIT license
+---
 ## Features
 
 -   TODO
