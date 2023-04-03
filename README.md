@@ -10,8 +10,8 @@
 **A Simple Python package to pre-processing satellite data using Google Earth Engine.**
 
 
--   Free software: MIT license
--   Documentation: https://tuyenhavan.github.io/pymapee
+-  GitHub repo: [https://github.com/tuyenhavan/pymapee](https://github.com/tuyenhavan/pymapee)
+-   
     
 
 ## Features
