@@ -24,9 +24,13 @@ pymapee is a simple Python package that aims to provide common functionalities t
 ---
 ## Installation
 Install `pymapee` using pip 
+
 `pip install pymapee`
+
 or install from Github
+
 `pip install git+https://github.com/tuyenhavan/pymapee.git`
+
 ---
 ## Credits
 
