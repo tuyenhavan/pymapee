@@ -104,6 +104,20 @@ def monthly_datetime_list(first_date, latest_date):
 #                                 Other Untilities                           #
 ##############################################################################
 
+def is_package_install(pkg_name):
+    """ Return True if the package is installed and False otherwise."""
+    try:
+        __import__(pkg_name)
+        return True
+    except:
+        return False
+
+def package_install(pkg_name):
+    """ Install the package."""
+    import subprocess
+    if isinstance(pkg_name, str):
+        pkg_name=pkg_name.strip()
+    subprocess.check_call(["python","-m", "pip","install", pkg_name])
 
 def scaling_data(col, scale_factor=None):
     """ Scale value of an image or collection
@@ -138,6 +152,23 @@ def kelvin_celsius(col):
     if isinstance (col, ee.ImageCollection):
         out_data=col.map(lambda img: img.subtract(273.15).copyProperties(img, img.propertyNames()))
     return out_data
+
+def data_format(input_data):
+    """ Format data returned by reduceRegions"""
+    if not is_package_install("pandas"):
+        package_install("pandas")
+    try:
+        import pandas as pd
+    except:
+        print("Please install pandas. Here is the link https://pandas.pydata.org/docs/getting_started/install.html")
+
+    data=input_data["features"]
+    slist=[]
+    for i in data:
+        thuoctinh=i["properties"]
+        slist.append(thuoctinh)
+    df=pd.DataFrame(slist)
+    return df
 
 def col_timestamp_band(col):
     """ return a collection with a new band added called timestamp"""

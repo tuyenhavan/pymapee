@@ -2,7 +2,7 @@
 
 __author__ = """Tuyen Ha"""
 __email__ = 'tuyenmassey@gmail.com'
-__version__ = '__version__ = '0.0.1''
+__version__ = '__version__ = 0.0.1'
 
 from .pymapee import *
 from .utils import *

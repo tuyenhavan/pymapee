@@ -1,7 +1,7 @@
 """Main module."""
 import ee
 from .utils import (date_range_col, monthly_datetime_list,
-                    cloud_mask, scaling_data)
+                    cloud_mask, scaling_data, data_format)
 
 def initialize_ee():
     ee.Initialize()
@@ -166,6 +166,67 @@ def VCI(col):
         return ee.Algorithms.If(size.gt(0), vci_img)
     vci_col=ee.ImageCollection.fromImages(monthly_list.map(vci))
     return vci_col
+
+def col_resample(col, resample_method=None, scale=None, crs=None):
+    """ Return a collection of resampled images. Resampling methods include max, min,
+        bilinear, bicubic, average, mode, and median.
+
+        Args:
+            col (ee.ImageCollection|ee.Image): The input image collection.
+            resample_method (str|optional): The resampling method. Default to bilinear.
+            crs (str|optional): The coordinate referenced system (reprojection) EPSG code. Default to None.
+            scale (int|float|optional): The spatial resolution in meters. Default to None.
+
+        Returns:
+            ee.ImageCollection: The output of resampled collection.
+    """
+    if resample_method is None:
+        resample_method="bilinear"
+    if crs is None:
+        if isinstance(col, ee.Image):
+            crs=col.select(0).projection().getInfo()["crs"]
+        elif isinstance(col, ee.ImageCollection):
+            crs=col.first().select(0).projection().getInfo()["crs"]
+    if scale is None:
+        scale =1000
+    if not (isinstance(resample_method, str) and isinstance(crs, str) and isinstance(scale, (int, float))):
+        raise TypeError ("Unsupported data type!")
+    if isinstance(col, ee.Image):
+        data=ee.Image(col).resample(resample_method).reproject(crs=crs, scale=scale)
+    if isinstance(col, ee.ImageCollection):
+        data=col.map(lambda img: img.resample(resample_method).reproject(crs=crs, scale=scale))
+    else:
+        raise TypeError("Unsupported data type!")
+    return data
+
+def value_from_image(img, polygon, method=None, scale=None, keep_geometry=False):
+    """ Extract values from an multi-band image using polygon (e.g., point, polygon).
+
+        Args:
+            img (ee.Image): The image that is used to extract values from.
+            polygon (ee.FeatureCollection): The shapefile feature collection.
+            method (str|optional): The method for extracting values using shapefile feature. Default to None.
+            scale (int|float|optional): The scale value in meters.
+            keep_geometry (bol|optional): If True, then keep the coordinate values. Default to False.
+
+        Returns:
+            pandas.DataFrame: The extracted dataframe.
+    """
+    if not isinstance(img, ee.Image):
+        raise TypeError("Unsupported data type!")
+    if not isinstance(polygon, ee.FeatureCollection):
+        raise TypeError("Unsupported data type!")
+    if method is None:
+        method="median"
+    if scale is None:
+        scale =1000
+    if not (isinstance(method, str) and isinstance(scale, (int, float))):
+        raise TypeError("Unsupported data type!")
+    value=img.reduceRegions(collection=polygon, reducer=method, scale=scale)
+    dict_value=value.select(trend_band.bandNames().getInfo(), retainGeometry=keep_geometry).getInfo()
+    df=data_format(dict_value)
+    return df
+
 
 def download_ee(ds,aoi,folder_name="GEE_Data",res=1000):
     """ Export an image from GEE with a given scale and area of interest
