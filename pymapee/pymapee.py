@@ -1,7 +1,36 @@
 """Main module."""
 import ee
 from .utils import (date_range_col, monthly_datetime_list,
-                    cloud_mask, scaling_data, data_format)
+                    cloud_mask, scaling_data, data_format,
+                    gee_service_account, non_service_account)
+
+def initialize_ee(token_name="EARTHENGINE_TOKEN", autho_mode="notebook", service_account=False):
+    """ Authenticate and initialize the Google Earth Engine (GEE).
+    
+        Args:
+            token_name (str|optional): The token name of GEE. Defaults to EARTHENGINE_TOKEN.
+            autho_mode (str|optional): The authentication mode. Defaults to notebook.
+            service_account (bool, optional): If True, use GEE service account and False otherwise. Defaults to False.
+        
+        Credit: This function is mainly taken from https://github.com/gee-community/geemap
+    """
+    import httplib2
+    import os
+    if ee.data._credentials is None:
+        ee_token=os.environ.get(token_name)
+        if service_account:
+            try:
+                gee_service_account()
+            except:
+                print("Failed to initialize Google Earth Engine.")
+        else:
+            try:
+                if ee_token is not None:
+                    non_service_account()
+                ee.Initialize(http_transport=httplib2.Http())
+            except:
+                ee.Authenticate(auth_mode=autho_mode)
+                ee.Initialize(http_transport=httplib2.Http())
 
 def modis_cloud_mask(col, from_bit, to_bit, QA_band="DetailedQA", threshold=1):
     """ Return a collection of MODIS cloud-free images
