@@ -22,6 +22,9 @@
 -   Calculating monthly vegetation anomaly index (VAI) and vegetation condition index (VCI).
 -   Scaling data
 -   Downloading an image or image collection (e.g., time-series NDVI)
+
+Examples are provided [here](https://github.com/tuyenhavan/pymapee/tree/main/examples), and it will be regularly updated.
+
 ---
 ## Installation
 Install `pymapee` using pip 
