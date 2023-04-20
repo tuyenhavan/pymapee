@@ -2,8 +2,10 @@
 import ee
 from .utils import (date_range_col, monthly_datetime_list,
                     cloud_mask, scaling_data, data_format,
-                    gee_service_account, non_service_account)
-import utils
+                    gee_service_account, non_service_account, time_search_limit,
+                    max_diff_filter, first_filter, second_filter, first_join_result,
+                    second_join_result, linear_interpolation, col_timestamp_band)
+
 
 def initialize_ee(token_name="EARTHENGINE_TOKEN", autho_mode="notebook", service_account=False):
     """ Authenticate and initialize the Google Earth Engine (GEE).
@@ -262,12 +264,12 @@ def gee_linear_interpolate_nan(col, days=30):
     """
     if not isinstance(col, ee.ImageCollection):
         raise TypeError("Invalid data type. Only support ee.ImageCollection")
-    time_col=utils.col_timestamp_band(col)
-    filter1=utils.first_filter(days)
-    filter2=utils.second_filter(days)
-    ket1=utils.first_join_result(time_col, filter1)
-    ket2=utils.second_join_result(ket1, filter2)
-    interpolated_col=ee.ImageCollection(ket2.map(utils.linear_interpolation))
+    time_col=col_timestamp_band(col)
+    filter1=first_filter(days)
+    filter2=second_filter(days)
+    ket1=first_join_result(time_col, filter1)
+    ket2=second_join_result(ket1, filter2)
+    interpolated_col=ee.ImageCollection(ket2.map(linear_interpolation))
     return interpolated_col
 
 def export_to_googledrive(ds,aoi,folder_name="GEE_Data",res=1000):
