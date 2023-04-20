@@ -102,6 +102,27 @@ def monthly_datetime_list(first_date, latest_date):
     monthly_list=month_list.map(month_step)
     return monthly_list
 
+def adjust_date_col(ds):
+    """ Adjust the date one day before or after the original date. In some cases, dates of two
+    collections are the same and make analysis challenging
+
+        Args:
+            ds (ee.ImageCollection): The image collection
+
+        Returns:
+            ee.ImageCollection: The collection with adjusted dates.
+    """
+    def adjust_date(img):
+        start= img.date()
+        end1=start.advance(1,"day")
+        end2=start.advance(-1,"day")
+        m1=ee.Number.parse(start.format("MM"))
+        m2=ee.Number.parse(end1.format("MM"))
+        new_img=ds.filterDate(start, end1).first()
+        return ee.Algorithms.If(m1.eq(m2), new_img.set({"system:time_start":end1.millis()}), new_img.set({"system:time_start":end2.millis()}))
+    fin_col=ee.ImageCollection(ds.map(adjust_date))
+    return fin_col
+
 ##############################################################################
 #                         Initialization and Authentication                  #
 ##############################################################################
@@ -121,7 +142,7 @@ def gee_service_account():
             credentials = ee.ServiceAccountCredentials(service_account, key_data=private_key)
             ee.Initialize(credentials)
 
-def non_service_account():
+def non_service_account(ee_token):
     credential_file=os.path.expanduser("~/.config/earthengine/credentials")
     if not os.path.exists(credential_file):
         folder=os.path.dirname(credential_file)
@@ -134,6 +155,71 @@ def non_service_account():
             credential=('{"refresh_token":"%s"}' % ee_token)
             with open(credential_file,"w") as new_file:
                 new_file.write(credential)
+
+##############################################################################
+#                         Interpolation Untilities                           #
+##############################################################################
+
+def time_search_limit(days):
+    """ How many days for searching ahead and after the missing values"""
+    if not isinstance(days, int):
+        raise TypeError("Invalid data type!")
+    millis=ee.Number(days).multiply(1000*60*60*24)
+    return millis
+
+def max_diff_filter(days):
+    """ Filter before and after the missing values.
+
+        Args:
+            millis (ee.Number): The output from time_search_limit.
+    """
+    return ee.Filter.maxDifference(**{"difference": time_search_limit(days),"leftField": 'system:time_start',"rightField": 'system:time_start'})
+
+def first_filter(millis):
+    less_filter=ee.Filter.lessThanOrEquals(**{"leftField": 'system:time_start',"rightField": 'system:time_start'})
+    return ee.Filter.And(max_diff_filter(millis), less_filter)
+
+def second_filter(millis):
+    greater_filter=ee.Filter.greaterThanOrEquals(**{"leftField": 'system:time_start',"rightField": 'system:time_start'})
+    return ee.Filter.And(max_diff_filter(millis), greater_filter)
+
+def first_join_result(time_band_col, filter1):
+    first_join=ee.Join.saveAll(**{"matchesKey":"after", "ordering": 'system:time_start', "ascending": False})
+    first_ket=first_join.apply(**{"primary":time_band_col, "secondary": time_band_col,
+                           "condition":filter1})
+    return first_ket
+
+def second_join_result(first_join_ket, filter2):
+    second_join=ee.Join.saveAll(**{"matchesKey": 'before',"ordering": 'system:time_start', "ascending": True})
+    second_ket=second_join.apply(**{"primary": first_join_ket, "secondary": first_join_ket, "condition":filter2})
+    return second_ket
+
+def linear_interpolation(image):
+    image = ee.Image(image)
+    beforeImages = ee.List(image.get('before'))
+    beforeMosaic = ee.ImageCollection.fromImages(beforeImages).mosaic()
+    afterImages = ee.List(image.get('after'))
+    afterMosaic = ee.ImageCollection.fromImages(afterImages).mosaic()
+    t1 = beforeMosaic.select('timestamp').rename('t1')
+    t2 = afterMosaic.select('timestamp').rename('t2')
+    t = image.metadata('system:time_start').rename('t')
+    timeImage = ee.Image.cat([t1, t2, t])
+    timeRatio = timeImage.expression('(t - t1) / (t2 - t1)', {
+    't': timeImage.select('t'),
+    't1': timeImage.select('t1'),
+    't2': timeImage.select('t2'),
+  })
+    interpolated = beforeMosaic.add((afterMosaic.subtract(beforeMosaic).multiply(timeRatio)))
+    result = image.unmask(interpolated)
+    return result.copyProperties(image, ['system:time_start'])
+
+def col_timestamp_band(col):
+    """ return a collection with a new band added called timestamp"""
+    def time_band(img):
+        _time_band=img.metadata("system:time_start").rename("timestamp")
+        time_band_mask=_time_band.updateMask(img.mask().select(0))
+        return img.addBands(time_band_mask)
+    return col.map(time_band)
 
 ##############################################################################
 #                                 Other Untilities                           #
@@ -152,7 +238,7 @@ def package_install(pkg_name):
     import subprocess
     if isinstance(pkg_name, str):
         pkg_name=pkg_name.strip()
-    subprocess.check_call(["python","-m", "pip","install", pkg_name])
+    subprocess.check_call(["pip","install", pkg_name])
 
 def scaling_data(col, scale_factor=None):
     """ Scale value of an image or collection
@@ -191,24 +277,20 @@ def kelvin_celsius(col):
 def data_format(input_data):
     """ Format data returned by reduceRegions"""
     if not is_package_install("pandas"):
-        package_install("pandas")
-    try:
+        print("pandas is not installed. Try to install it ....")
+        try:
+            package_install("pandas")
+        except:
+            print("Failed to install pandas!")
+    if is_package_install("pandas"):
         import pandas as pd
-    except:
-        print("Please install pandas. Here is the link https://pandas.pydata.org/docs/getting_started/install.html")
+        data=input_data["features"]
+        slist=[]
+        for i in data:
+            thuoctinh=i["properties"]
+            slist.append(thuoctinh)
+        df=pd.DataFrame(slist)
+        return df
+    else:
+        raise ValueError("Please install pandas. Here is the link https://pandas.pydata.org/docs/getting_started/install.html")
 
-    data=input_data["features"]
-    slist=[]
-    for i in data:
-        thuoctinh=i["properties"]
-        slist.append(thuoctinh)
-    df=pd.DataFrame(slist)
-    return df
-
-def col_timestamp_band(col):
-    """ return a collection with a new band added called timestamp"""
-    def time_band(img):
-        _time_band=img.metadata("system:time_start").rename("timestamp")
-        time_band_mask=_time_band.updateMask(img.mask().select(0))
-        return img.addBands(time_band_mask)
-    return col.map(time_band)

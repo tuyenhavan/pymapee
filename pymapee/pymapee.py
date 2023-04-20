@@ -3,15 +3,16 @@ import ee
 from .utils import (date_range_col, monthly_datetime_list,
                     cloud_mask, scaling_data, data_format,
                     gee_service_account, non_service_account)
+import utils
 
 def initialize_ee(token_name="EARTHENGINE_TOKEN", autho_mode="notebook", service_account=False):
     """ Authenticate and initialize the Google Earth Engine (GEE).
-    
+
         Args:
             token_name (str|optional): The token name of GEE. Defaults to EARTHENGINE_TOKEN.
             autho_mode (str|optional): The authentication mode. Defaults to notebook.
             service_account (bool, optional): If True, use GEE service account and False otherwise. Defaults to False.
-        
+
         Credit: This function is mainly taken from https://github.com/gee-community/geemap
     """
     import httplib2
@@ -26,7 +27,7 @@ def initialize_ee(token_name="EARTHENGINE_TOKEN", autho_mode="notebook", service
         else:
             try:
                 if ee_token is not None:
-                    non_service_account()
+                    non_service_account(ee_token)
                 ee.Initialize(http_transport=httplib2.Http())
             except:
                 ee.Authenticate(auth_mode=autho_mode)
@@ -85,7 +86,6 @@ def sentinel2_cloud_mask(col, from_bit, to_bit, QA_band="QA60", threshold=0):
         raise TypeError ("Unsupported data type. It only supports ee.ImageCollection")
     out_col=cloud_mask(col, from_bit, to_bit, QA_band, threshold)
     return out_col
-
 
 def monthly_composite(col, mode=None):
     """ Return a collection of monthly images
@@ -246,12 +246,31 @@ def value_from_image(img, polygon, method=None, scale=None, keep_geometry=False)
     if not (isinstance(method, str) and isinstance(scale, (int, float))):
         raise TypeError("Unsupported data type!")
     value=img.reduceRegions(collection=polygon, reducer=method, scale=scale)
-    dict_value=value.select(trend_band.bandNames().getInfo(), retainGeometry=keep_geometry).getInfo()
+    dict_value=value.select(img.bandNames().getInfo(), retainGeometry=keep_geometry).getInfo()
     df=data_format(dict_value)
     return df
 
+def gee_linear_interpolate_nan(col, days=30):
+    """ Interpolating missing values
 
-def download_ee(ds,aoi,folder_name="GEE_Data",res=1000):
+        Args:
+            col (ee.ImageCollection): The input image collection.
+            days (int, optional): The number of days to search for image before and after the missing values. Default o 30 days.
+
+        Returns:
+            ee.ImageCollection: The output collection with missing valued being interpolated.
+    """
+    if not isinstance(col, ee.ImageCollection):
+        raise TypeError("Invalid data type. Only support ee.ImageCollection")
+    time_col=utils.col_timestamp_band(col)
+    filter1=utils.first_filter(days)
+    filter2=utils.second_filter(days)
+    ket1=utils.first_join_result(time_col, filter1)
+    ket2=utils.second_join_result(ket1, filter2)
+    interpolated_col=ee.ImageCollection(ket2.map(utils.linear_interpolation))
+    return interpolated_col
+
+def export_to_googledrive(ds,aoi,folder_name="GEE_Data",res=1000):
     """ Export an image from GEE with a given scale and area of interest
     to the Google Drive. If input data is an ImageCollection, it will convert it
     into an image and then export. The collection should contains only single data,
@@ -285,5 +304,45 @@ def download_ee(ds,aoi,folder_name="GEE_Data",res=1000):
                                      description=folder_name,
                                      folder=folder_name,
                                      crs="EPSG:4326",
+                                     scale=res)
+    task.start()
+
+def export_to_asset(ds,aoi,assetId, description="Exported_Data_To_Asset",res=1000, crs=None):
+    """ Export an image from GEE with a given scale and area of interest
+    to the Google Drive. If input data is an ImageCollection, it will convert it
+    into an image and then export. The collection should contains only single data,
+    for example NDVI bands or precipitation bands or LST bands.
+
+        Args:
+            ds (ee.Image|ee.ImageCollection): The input ee.Image or ee.ImageCollection
+            aoi (FeatureCollection): The area of interest to clip the images.
+            folder_name (str): An output file name. Default is GEE_Data
+            res (int): A spatial resolution in meters. Default is 1km.
+            crs (str|optional): The output crs. Default to EPSG:4326
+
+        Returns:
+            ee.Image: the clipped image with crs: 4326
+    """
+    if crs is None:
+        crs="EPSG:4326"
+    if isinstance(ds, ee.ImageCollection):
+        # Convert it to an image
+        img=ds.toBands()
+        # get bands and rename
+        oldband=img.bandNames().getInfo()
+        newband=["_".join(i.split("_")[::-1]) for i in oldband]
+        # Rename it
+        new_img=img.select(oldband, newband).clip(aoi)
+    elif isinstance(ds, ee.Image):
+        new_img=ds.clip(aoi)
+    else:
+        raise TypeError("Unsupported data type!")
+
+    # Initialize the task of downloading an image
+    task = ee.batch.Export.image.toAsset(image=new_img,  # an ee.Image object.
+                                     region=aoi.geometry().bounds().getInfo()["coordinates"],  # an ee.Geometry object.
+                                     description=description,
+                                     assetId=assetId,
+                                     crs=crs,
                                      scale=res)
     task.start()
