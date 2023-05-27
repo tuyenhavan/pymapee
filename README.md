@@ -20,6 +20,7 @@
 -   Masking cloud-related pixels (e.g., MODIS, Landsat, and Sentinel-2)
 -   Making monthly composite
 -   Calculating monthly vegetation anomaly index (VAI) and vegetation condition index (VCI).
+-   Interpolating time-series using linear interpolation
 -   Scaling data
 -   Downloading an image or image collection (e.g., time-series NDVI)
 
