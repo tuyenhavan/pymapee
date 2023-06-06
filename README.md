@@ -18,7 +18,7 @@
 ## Features
 
 -   Masking cloud-related pixels (e.g., MODIS, Landsat, and Sentinel-2)
--   Making monthly composite
+-   Making monthly and daily composite
 -   Calculating monthly vegetation anomaly index (VAI) and vegetation condition index (VCI).
 -   Interpolating time-series using linear interpolation
 -   Scaling data

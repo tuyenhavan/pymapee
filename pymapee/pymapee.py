@@ -132,6 +132,50 @@ def monthly_composite(col, mode=None):
     composite_col = ee.ImageCollection.fromImages(monthly_list.map(monthly_data))
     return composite_col
 
+def daily_composite(ds, mode="max"):
+    """Aggregate data from hourly to daily composites
+
+    Args:
+        ds (ImageCollection): The input image collection.
+        mode (str|optional): Aggregated modes [max, min, mean, median, sum]. Default to max.
+
+    Return:
+        ImageCollection: The daily composite
+    """
+    if isinstance(mode, str):
+        mode = mode.lower().strip()
+
+    # Get the starting and ending dates of the collection
+    start_date = ee.Date(ee.Date(ds.first().get("system:time_start")).format('YYYY-MM-dd'))
+    end_date = ee.Date(ee.Date(ds.sort('system:time_start', False).first().get("system:time_start")).format('YYYY-MM-dd'))
+
+    # Get the number of days
+    daynum = end_date.difference(start_date, 'day')
+    slist = ee.List.sequence(0, daynum)
+    date_list = slist.map(lambda i: start_date.advance(i, "day"))
+
+    def sub_col(date_input):
+        first_date = ee.Date(date_input)
+        last_date = first_date.advance(1, "day")
+        subcol = ds.filterDate(first_date, last_date)
+        size = subcol.size()
+
+        if mode in ["max", "maximum"]:
+            img = subcol.max().set({"system:time_start": first_date.millis()})
+        elif mode in ["mean", "average"]:
+            img = subcol.mean().set({"system:time_start": first_date.millis()})
+        elif mode in ["min", "minimum"]:
+            img = subcol.min().set({"system:time_start": first_date.millis()})
+        elif mode in ["median"]:
+            img = subcol.median().set({"system:time_start": first_date.millis()})
+        elif mode in ["sum", "total"]:
+            img = subcol.sum().set({"system:time_start": first_date.millis()})
+
+        return ee.Algorithms.If(size.gt(0), img)
+
+    new_col = ee.ImageCollection.fromImages(date_list.map(sub_col))
+    return new_col
+
 def VAI(col, scale=1):
     """ Return a collection of monthly vegetation anomaly index.
 
@@ -148,6 +192,7 @@ def VAI(col, scale=1):
 
     first_date, latest_date=date_range_col(col)
     monthly_list=monthly_datetime_list(first_date, latest_date)
+
     def ndvi_anomaly(date):
         start_time=ee.Date(date)
         set_month=ee.Number.parse(start_time.format("MM"))
@@ -309,7 +354,7 @@ def export_to_googledrive(ds,aoi,folder_name="GEE_Data",res=1000):
                                      scale=res)
     task.start()
 
-def export_to_asset(ds,aoi,assetId, description="Exported_Data_To_Asset",res=1000, crs=None):
+def export_to_asset(ds, aoi, assetId, description="Exported_Data_To_Asset", res=1000, crs=None):
     """ Export an image from GEE with a given scale and area of interest
     to the Google Drive. If input data is an ImageCollection, it will convert it
     into an image and then export. The collection should contains only single data,
