@@ -294,3 +294,11 @@ def data_format(input_data):
     else:
         raise ValueError("Please install pandas. Here is the link https://pandas.pydata.org/docs/getting_started/install.html")
 
+def arange(start, stop, step=1):
+    result = []
+    current = start
+    while current < stop:
+        result.append(current)
+        current += step
+    result=[round(i, 2) for i in result]
+    return result

@@ -4,7 +4,7 @@ from .utils import (date_range_col, monthly_datetime_list,
                     cloud_mask, scaling_data, data_format,
                     gee_service_account, non_service_account, time_search_limit,
                     max_diff_filter, first_filter, second_filter, first_join_result,
-                    second_join_result, linear_interpolation, col_timestamp_band)
+                    second_join_result, linear_interpolation, col_timestamp_band, arange)
 
 
 def initialize_ee(token_name="EARTHENGINE_TOKEN", autho_mode="notebook", service_account=False):
@@ -316,6 +316,65 @@ def gee_linear_interpolate_nan(col, days=30):
     ket2=second_join_result(ket1, filter2)
     interpolated_col=ee.ImageCollection(ket2.map(linear_interpolation))
     return interpolated_col
+
+def chunk_maker(feature_col, ncols, nrows):
+    """ Split the study area into different chunks to facilitate the computation.
+
+        Args:
+            feature_col (ee.FeatureCollection): A region of interest
+            ncols (n): The number of columns
+            nrows (n): The number of rows
+
+        Return:
+            FeatureCollection: The number of chunks covers the study area.
+
+        Reference:
+            This script is adapted from shijuanchen32.
+    """
+    if isinstance(feature_col, ee.FeatureCollection):
+        data=feature_col
+    else:
+        raise TypeError("Data must be ee.FeatureCollection!")
+    def get_bound(feature_col):
+        """ Get the min, max of the longitude and latitude of the study area
+
+        Return:
+            list: [(min_long, max_long), (min_lat, max_lat)]
+
+        """
+        bbox = feature_col.geometry().bounds().coordinates().getInfo()[0]
+        min_long = min(bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0])
+        max_long = max(bbox[0][0], bbox[1][0], bbox[2][0], bbox[3][0])
+
+        min_lat = min(bbox[0][1], bbox[1][1], bbox[2][1], bbox[3][1])
+        max_lat = max(bbox[0][1], bbox[1][1], bbox[2][1], bbox[3][1])
+
+        return [(round(min_long), round(max_long+1)), (round(min_lat-1), round(max_lat+1))]
+    bbox=get_bound(data)
+    min_lon, max_lon = bbox[0]
+    min_lat, max_lat = bbox[1]
+    # Space or distance of chunks
+    lon_dist = (max_lon - min_lon) / ncols
+    lat_dist = (max_lat - min_lat) / nrows
+
+    polys=[]
+    cell=0
+    for lon in arange(min_lon, max_lon, lon_dist):
+        x1=lon
+        x2=lon+lon_dist
+        for lat in arange(min_lat, max_lat, lat_dist):
+            cell+=1
+            y1=lat
+            y2=lat+lat_dist
+            polys.append(ee.Feature(ee.Geometry.Rectangle(x1,y1,x2,y2), {"label":cell}))
+    feat_polys=ee.FeatureCollection(polys)
+    grid = feat_polys.filterBounds(feature_col)
+    index_list=ee.List.sequence(0, grid.size().subtract(1))
+    flist=grid.toList(grid.size())
+    final_col=index_list.map(lambda i: ee.Feature(flist.get(i)).set("system:index", ee.Number(i).format()))
+    final_col=ee.FeatureCollection(final_col)
+
+    return final_col
 
 def export_to_googledrive(ds,aoi,folder_name="GEE_Data",res=1000):
     """ Export an image from GEE with a given scale and area of interest
