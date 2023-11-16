@@ -37,6 +37,11 @@ or install from Github to get the latest update.
 `pip install git+https://github.com/tuyenhavan/pymapee.git`
 
 ---
+## Citations
+If you find pymapee useful in your research, please consider citing the following paper to support our work. Thank you.
+- Ha, T.V., Huth, J., Bachofer, F., Kuenzer, C., 2022. A review of earth observation-based drought studies in Southeast Asia. Remote Sensing 14, 3763. https://doi.org/10.3390/rs14153763
+- Ha, T.V., Uereyen, S., Kuenzer, C., 2023. Agricultural drought conditions over mainland Southeast Asia: Spatiotemporal characteristics revealed from MODIS-based vegetation time-series. International Journal of Applied Earth Observation and Geoinformation. 121, 103378. https://doi.org/10.1016/j.jag.2023.103378
+
 ## Credits
 
 This package was created with [Cookiecutter](https://github.com/cookiecutter/cookiecutter) and the [giswqs/pypackage](https://github.com/giswqs/pypackage) project template.
