@@ -6,3 +6,4 @@ __version__ = '__version__ = 0.0.4'
 
 from .pymapee import *
 from .utils import *
+from .ipygee import *
