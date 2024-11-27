@@ -41,6 +41,7 @@ or install from Github to get the latest update.
 If you find pymapee useful in your research, please consider citing the following paper to support our work. Thank you.
 - Ha, T.V., Huth, J., Bachofer, F., Kuenzer, C., 2022. A review of earth observation-based drought studies in Southeast Asia. Remote Sensing 14, 3763. https://doi.org/10.3390/rs14153763
 - Ha, T.V., Uereyen, S., Kuenzer, C., 2023. Agricultural drought conditions over mainland Southeast Asia: Spatiotemporal characteristics revealed from MODIS-based vegetation time-series. International Journal of Applied Earth Observation and Geoinformation. 121, 103378. https://doi.org/10.1016/j.jag.2023.103378
+- Ha, T. V., Uereyen, S., & Kuenzer, C. (2024). Spatiotemporal analysis of tropical vegetation ecosystems and their responses to multifaceted droughts in Mainland Southeast Asia using satellite-based time series. GIScience & Remote Sensing, 61(1), 2387385. https://doi.org/10.1080/15481603.2024.2387385
 
 ## Credits
 
