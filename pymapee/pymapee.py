@@ -451,7 +451,8 @@ def export_to_googledrive(ds, aoi, folder_name="GEE_Data", file_name="NDVI_data"
                                          folder=folder_name,
                                          fileNamePrefix=file_name,
                                          crs="EPSG:4326",
-                                         scale=res)
+                                         scale=res, 
+                                        maxPixels=1e13)
     task.start()
 
 
