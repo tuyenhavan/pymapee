@@ -197,7 +197,7 @@ def daily_composite(ds, mode="max"):
     return new_col
 
 
-def VAI(col, scale=1):
+def calculate_ndvi_anomaly(col, scale=1):
     """ Return a collection of monthly vegetation anomaly index.
 
         Args:
@@ -222,7 +222,7 @@ def VAI(col, scale=1):
         col_month = col.filter(ee.Filter.calendarRange(
             set_month, set_month, "month"))
         subcol = col.filterDate(start_time, last_time)
-        size = col_month.size()
+        size = subcol.size()
         mean = col_month.mean()
         anomaly = subcol.max().subtract(mean).set(
             {"system:time_start": start_time.millis()})
@@ -231,7 +231,7 @@ def VAI(col, scale=1):
     return vai
 
 
-def VCI(col):
+def calculate_vci(col):
     """ Return a collection of vegetation condition index.
 
         Args:
@@ -255,7 +255,7 @@ def VCI(col):
         col_month = col.filter(ee.Filter.calendarRange(
             set_month, set_month, "month"))
         subcol = col.filterDate(start_time, last_time)
-        size = col_month.size()
+        size = subcol.size()
         mean = col_month.mean()
         min_value = col_month.min()
         max_value = col_month.max()
@@ -268,7 +268,7 @@ def VCI(col):
     return vci_col
 
 
-def col_resample(col, resample_method=None, scale=None, crs=None):
+def resample_collection(col, resample_method=None, scale=None, crs=None):
     """ Return a collection of resampled images. Resampling methods include max, min,
         bilinear, bicubic, average, mode, and median.
 
